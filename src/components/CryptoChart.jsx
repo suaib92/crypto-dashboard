@@ -1,6 +1,7 @@
-import React from "react";
-import { useState, useEffect } from "react";
-import axios from "axios";
+import React,{ useState, useEffect }  from "react";
+import { useDispatch,  useSelector } from "react-redux";
+import { fetchChartData } from "../redux/action/chartActions";
+
 import {
   LineChart,
   Line,
@@ -17,49 +18,43 @@ import {
 } from "recharts";
 
 const CryptoChart = () => {
-  const [currency, setCurrency] = useState("bitcoin");
-  const [timeInterval, setTimeInterval] = useState("1d");
-  const [priceData, setPriceData] = useState([]);
-  const [chartType, setChartType] = useState("line");
+  const dispatch = useDispatch();
+  const [currency, setCurrency] = useState('bitcoin');
+  const [timeInterval, setTimeInterval] = useState('1d');
+  const [chartType, setChartType] = useState('line');
+  const timeIntervals = [
+    { value: '1d', label: '1D' },
+    { value: '7d', label: '1W' },
+    { value: '30d', label: '1M' },
+    { value: '180d', label: '6M' },
+    { value: '365d', label: '1Y' },
+  ];
+
   useEffect(() => {
     fetchData(currency, timeInterval);
   }, [currency, timeInterval]);
-  const timeIntervals = [
-    { value: "1d", label: "1D" },
-    { value: "7d", label: "1W" },
-    { value: "30d", label: "1M" },
-    { value: "180d", label: "6M" },
-    { value: "365d", label: "1Y" },
-  ];
+
+  
 
   const fetchData = (selectedCurrency, selectedTimeInterval) => {
-    axios
-      .get(
-        `https://api.coingecko.com/api/v3/coins/${selectedCurrency}/market_chart`,
-        {
-          params: {
-            vs_currency: "usd",
-            days: selectedTimeInterval,
-          },
-        }
-      )
-      .then((response) => {
-        const data = response.data.prices.map((entry) => ({
-          date: new Date(entry[0]).toLocaleDateString(),
-          price: entry[1],
-        }));
-        setPriceData(data);
-      })
-      .catch((error) => {
-        console.error("Error fetching data:", error);
-      });
+    dispatch(fetchChartData(selectedCurrency, selectedTimeInterval));
+
+    console.log(selectedCurrency,selectedTimeInterval)
   };
+  
+
+  const chartData = useSelector((state) => state.chartData.chartData);
+
   const renderChart = () => {
+    if (!Array.isArray(chartData) || chartData.length === 0) {
+      return <div>No data available.</div>;
+    }
+ console.log('render',chartData[0])
     switch (chartType) {
       case "line":
         return (
           <LineChart
-            data={priceData}
+            data={chartData}
             
           >
            
@@ -80,7 +75,7 @@ const CryptoChart = () => {
       case "bar":
         return (
           <BarChart
-            data={priceData}
+            data={chartData}
            
           >
             <CartesianGrid strokeDasharray="3 3" />
@@ -94,7 +89,7 @@ const CryptoChart = () => {
       case "area":
         return (
           <AreaChart
-            data={priceData}
+            data={chartData}
            
           >
             <CartesianGrid strokeDasharray="3 3" />
